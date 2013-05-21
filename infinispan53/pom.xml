@@ -14,4 +14,37 @@
          <version>5.3.0-SNAPSHOT</version>
       </dependency>
    </dependencies>
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+               <finalName>config-normalizer</finalName>
+            </configuration>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+               <execution>
+                  <id>assemble</id>
+                  <phase>package</phase>
+                  <goals>
+                     <goal>single</goal>
+                  </goals>
+               </execution>
+            </executions>
+            <configuration>
+               <descriptors>
+                  <descriptor>${project.basedir}/src/main/assemblies/server-patch.xml</descriptor>
+               </descriptors>
+               <finalName>server-patch</finalName>
+               <outputDirectory>${project.build.directory}</outputDirectory>
+               <workDirectory>${project.build.directory}/assembly/work</workDirectory>
+               <appendAssemblyId>false</appendAssemblyId>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
 </project>
