@@ -84,13 +84,58 @@ public class ConfigNormalizer {
    public static Properties reflectProperties(GlobalConfiguration globalConfiguration, Map<String, Configuration> cacheConfigurations, JChannel jgroupsChannel)
          throws Exception {
       Properties p = new Properties();
-      reflect(globalConfiguration, p, "global");
+      p.putAll(reflectProperties(globalConfiguration, "global"));
       for (Entry<String, Configuration> ent : cacheConfigurations.entrySet()) {
-         reflect(ent.getValue(), p, "cache." + ent.getKey());
+         p.putAll(reflectProperties(ent.getValue(), "cache." + ent.getKey()));
       }
       if (jgroupsChannel != null) {
-         getJGroupsConfig("jgroups", p, jgroupsChannel);
+         p.putAll(reflectProperties(jgroupsChannel, "jgroups"));
       }
+      return p;
+   }
+
+   /**
+    * 
+    * Reflect global configuration.
+    * 
+    * @param globalConfiguration
+    * @param prefix
+    * @return Config properties
+    * @throws Exception
+    */
+   public static Properties reflectProperties(GlobalConfiguration globalConfiguration, String prefix) throws Exception {
+      Properties p = new Properties();
+      reflect(globalConfiguration, p, prefix);
+      return p;
+   }
+
+   /**
+    * 
+    * Reflect configuration.
+    * 
+    * @param config
+    * @param prefix
+    * @return Config properties
+    * @throws Exception
+    */
+   public static Properties reflectProperties(Configuration config, String prefix) throws Exception {
+      Properties p = new Properties();
+      reflect(config, p, prefix);
+      return p;
+   }
+
+   /**
+    * 
+    * Reflect JGroups channel.
+    * 
+    * @param jgroupsChannel
+    * @param prefix
+    * @return Config properties
+    * @throws Exception
+    */
+   public static Properties reflectProperties(JChannel jgroupsChannel, String prefix) throws Exception {
+      Properties p = new Properties();
+      getJGroupsConfig(prefix, p, jgroupsChannel);
       return p;
    }
 
@@ -206,7 +251,8 @@ public class ConfigNormalizer {
          if (field.isAnnotationPresent(Property.class)) {
             field.setAccessible(true);
             Object val = field.get(proto);
-            p.put(prefix + "." + proto.getName() + "." + field.getName(), val == null ? "null" : val.toString());
+            String prefixDot = prefix == null || "".equals(prefix) ? "" : prefix + ".";
+            p.put(prefixDot + proto.getName() + "." + field.getName(), val == null ? "null" : val.toString());
          }
       }
    }
@@ -235,7 +281,8 @@ public class ConfigNormalizer {
                continue;
             }
             try {
-               reflect(m.invoke(obj), p, prefix + "." + m.getName());
+               String prefixDot = prefix == null || "".equals(prefix) ? "" : prefix + ".";
+               reflect(m.invoke(obj), p, prefixDot + m.getName());
             } catch (IllegalAccessException e) {
                // ok
             }

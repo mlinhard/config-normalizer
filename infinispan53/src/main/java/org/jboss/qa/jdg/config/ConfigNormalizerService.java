@@ -50,9 +50,28 @@ public class ConfigNormalizerService {
    public interface CacheManagerDataMBean {
       /**
        * 
-       * @return the configuration properties
+       * @return all configuration properties
        */
       Properties getNormalizedConfig();
+
+      /**
+       * 
+       * @return the global configuration properties
+       */
+      Properties getNormalizedConfigGlobal();
+
+      /**
+       * 
+       * @return the configuration properties for JGroups channel
+       */
+      Properties getNormalizedConfigJGroups();
+
+      /**
+       * 
+       * @param cacheName
+       * @return Config properties for specific cache
+       */
+      Properties getNormalizedConfigCache(String cacheName);
 
       /**
        * 
@@ -69,6 +88,54 @@ public class ConfigNormalizerService {
        * @param file
        */
       void saveSortedXML(String file);
+
+      /**
+       * 
+       * Saves the global config.
+       * 
+       * @param file
+       */
+      void saveSortedPropertiesGlobalConfiguration(String file);
+
+      /**
+       * 
+       * Saves the global config.
+       * 
+       * @param file
+       */
+      void saveSortedXMLGlobalConfiguration(String file);
+
+      /**
+       * 
+       * Saves the jgroups config.
+       * 
+       * @param file
+       */
+      void saveSortedPropertiesJGroups(String file);
+
+      /**
+       * 
+       * Saves the jgroups config.
+       * 
+       * @param file
+       */
+      void saveSortedXMLJGroups(String file);
+
+      /**
+       * 
+       * Saves the cache config.
+       * 
+       * @param file
+       */
+      void saveSortedPropertiesCache(String file, String cacheName);
+
+      /**
+       * 
+       * Saves the cache config.
+       * 
+       * @param file
+       */
+      void saveSortedXMLCache(String file, String cacheName);
    }
 
    private static class CacheManagerData implements CacheManagerDataMBean {
@@ -138,6 +205,103 @@ public class ConfigNormalizerService {
       public void saveSortedXML(String file) {
          try {
             ConfigNormalizer.storeSortedPropertiesAsXML(getNormalizedConfig(), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+      }
+
+      @Override
+      public Properties getNormalizedConfigGlobal() {
+         try {
+            return ConfigNormalizer.reflectProperties(globalConfiguration, "");
+         } catch (Exception e) {
+            log.error("Error while reflecting properties for manager: " + cacheManagerName, e);
+            return new Properties();
+         }
+      }
+
+      @Override
+      public Properties getNormalizedConfigJGroups() {
+         try {
+            if (jgroupsChannel == null) {
+               jgroupsChannel = getChannel(globalComponentRegistry);
+            }
+            if (jgroupsChannel == null) {
+               log.error("Error while reflecting properties for manager: " + cacheManagerName + ": JGroups channel not available.");
+               return new Properties();
+            }
+            return ConfigNormalizer.reflectProperties(jgroupsChannel, "");
+         } catch (Exception e) {
+            log.error("Error while reflecting properties for manager: " + cacheManagerName, e);
+            return new Properties();
+         }
+      }
+
+      @Override
+      public Properties getNormalizedConfigCache(String cacheName) {
+         try {
+            Configuration config = configByCacheName.get(cacheName);
+            if (config == null) {
+               log.error("Error while reflecting properties for manager: " + cacheManagerName + ": config not found.");
+               return new Properties();
+            }
+            return ConfigNormalizer.reflectProperties(config, "");
+         } catch (Exception e) {
+            log.error("Error while reflecting properties for manager: " + cacheManagerName, e);
+            return new Properties();
+         }
+      }
+
+      @Override
+      public void saveSortedPropertiesGlobalConfiguration(String file) {
+         try {
+            ConfigNormalizer.storeSortedProperties(getNormalizedConfigGlobal(), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+      }
+
+      @Override
+      public void saveSortedXMLGlobalConfiguration(String file) {
+         try {
+            ConfigNormalizer.storeSortedPropertiesAsXML(getNormalizedConfigGlobal(), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+      }
+
+      @Override
+      public void saveSortedPropertiesJGroups(String file) {
+         try {
+            ConfigNormalizer.storeSortedProperties(getNormalizedConfigJGroups(), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+      }
+
+      @Override
+      public void saveSortedXMLJGroups(String file) {
+         try {
+            ConfigNormalizer.storeSortedPropertiesAsXML(getNormalizedConfigJGroups(), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+      }
+
+      @Override
+      public void saveSortedPropertiesCache(String file, String cacheName) {
+         try {
+            ConfigNormalizer.storeSortedProperties(getNormalizedConfigCache(cacheName), file);
+         } catch (Exception e) {
+            log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
+         }
+
+      }
+
+      @Override
+      public void saveSortedXMLCache(String file, String cacheName) {
+         try {
+            ConfigNormalizer.storeSortedPropertiesAsXML(getNormalizedConfigCache(cacheName), file);
          } catch (Exception e) {
             log.error("Error saving config properties of chache manager " + cacheManagerName + " to file " + file, e);
          }
