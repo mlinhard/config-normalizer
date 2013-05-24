@@ -27,6 +27,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -41,6 +42,7 @@ import java.util.TreeSet;
 
 import org.infinispan.api.BasicCacheContainer;
 import org.infinispan.configuration.cache.Configuration;
+import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.configuration.global.GlobalConfiguration;
 import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
@@ -199,12 +201,11 @@ public class ConfigNormalizer {
       }
    }
 
-   private static ClassLoader getConfigClassLoader() throws MalformedURLException {
-      String addClasspathDir = System.getProperty("config.normalizer.add.classpath");
-      if (addClasspathDir != null) {
+   private static ClassLoader getConfigClassLoader(String jarDir) throws MalformedURLException {
+      if (jarDir != null) {
          ClassLoader parent = Thread.currentThread().getContextClassLoader();
          List<URL> urls = new ArrayList<URL>();
-         findJars(urls, new File(addClasspathDir));
+         findJars(urls, new File(jarDir));
          return new URLClassLoader(urls.toArray(new URL[urls.size()]), parent);
       } else {
          return Thread.currentThread().getContextClassLoader();
@@ -218,19 +219,130 @@ public class ConfigNormalizer {
       }
    }
 
-   public static void main(String[] args) throws Exception {
-      ClassLoader configClassLoader = getConfigClassLoader();
-      ConfigurationBuilderHolder holder = new ParserRegistry(configClassLoader).parse(FileLookupFactory.newInstance().lookupFileStrict(args[0],
-            configClassLoader));
+   private static void usage() {
+      System.out.println("USAGE ConfigNormalizer [OPTIONS] <config_file>");
+      System.out.println("OPTIONS:");
+      System.out.println("  -o <output_file>");
+      System.out.println("  -f <output_format>");
+      System.out.println("     defined output formats:");
+      System.out.println("        xml      - xml properties (default)");
+      System.out.println("        standard - standard properties");
+      System.out.println("  -c <cache_name>");
+      System.out.println("     implies  output_type=cache");
+      System.out.println("  -t <output_type>");
+      System.out.println("     defined output types:");
+      System.out.println("        all     - print all properties into one file, prefixes will be: global, cache.<name>, jgroups");
+      System.out.println("        cache   - cache name needs to be specified by option -c, if not default cache is used");
+      System.out.println("                  prints only specified cache configuration");
+      System.out.println("        global  - prints only global configuration");
+      System.out.println("        jgroups - prints only jgroups configuration");
+      System.out.println("  -p <property_key_prefix>");
+      System.out.println("     prefix will be appended before all property keys in the output file, default empty string");
+      System.out.println("  -j <jar_dir>");
+      System.out.println("     all JAR files under this directory will be added to classpath");
+      System.exit(0);
+   }
 
-      Map<String, Configuration> cacheConfigurations = new HashMap<String, Configuration>();
-      GlobalConfiguration globalConfiguration = holder.getGlobalConfigurationBuilder().build();
-      cacheConfigurations.put(BasicCacheContainer.DEFAULT_CACHE_NAME, holder.getDefaultConfigurationBuilder().build());
-      for (String cacheName : holder.getNamedConfigurationBuilders().keySet()) {
-         cacheConfigurations.put(cacheName, holder.getNamedConfigurationBuilders().get(cacheName).build());
+   public static void main(String[] args) throws Exception {
+      if (args.length == 0) {
+         usage();
+         return;
       }
-      Properties p = reflectProperties(globalConfiguration, cacheConfigurations, getInitializedJChannel(globalConfiguration));
-      storeSortedPropertiesAsXML(p, args[1]);
+      String outputFile = null;
+      String outputFormat = "xml";
+      String cacheName = null;
+      String outputType = "all";
+      String prefix = "";
+      String jarDir = null;
+      String configFile = null;
+
+      for (int i = 0; i < args.length; i++) {
+         if (args[i].equals("-o")) {
+            outputFile = args[i + 1];
+            i++;
+         } else if (args[i].equals("-f")) {
+            outputFormat = args[i + 1];
+            i++;
+         } else if (args[i].equals("-c")) {
+            cacheName = args[i + 1];
+            i++;
+         } else if (args[i].equals("-t")) {
+            outputType = args[i + 1];
+            i++;
+         } else if (args[i].equals("-p")) {
+            prefix = args[i + 1];
+            i++;
+         } else if (args[i].equals("-j")) {
+            jarDir = args[i + 1];
+            i++;
+         } else {
+            configFile = args[i];
+            if (i != args.length - 1) {
+               usage();
+               return;
+            }
+         }
+      }
+      if (!Arrays.asList("all", "cache", "global", "jgroups").contains(outputType)) {
+         System.out.println("ERROR: unknown output type: " + outputType);
+         usage();
+         return;
+      }
+      if (!Arrays.asList("xml", "standard").contains(outputFormat)) {
+         System.out.println("ERROR: unknown output format: " + outputType);
+         usage();
+         return;
+      }
+      ClassLoader configClassLoader = getConfigClassLoader(jarDir);
+      ConfigurationBuilderHolder holder = new ParserRegistry(configClassLoader).parse(FileLookupFactory.newInstance().lookupFileStrict(configFile,
+            configClassLoader));
+      if ("all".equals(outputType)) {
+         Map<String, Configuration> cacheConfigurations = new HashMap<String, Configuration>();
+         GlobalConfiguration globalConfiguration = holder.getGlobalConfigurationBuilder().build();
+         cacheConfigurations.put(BasicCacheContainer.DEFAULT_CACHE_NAME, holder.getDefaultConfigurationBuilder().build());
+         for (String cacheName1 : holder.getNamedConfigurationBuilders().keySet()) {
+            cacheConfigurations.put(cacheName1, holder.getNamedConfigurationBuilders().get(cacheName1).build());
+         }
+         JChannel jgroupsChannel = getInitializedJChannel(globalConfiguration);
+         store(outputFormat, outputFile, reflectProperties(globalConfiguration, cacheConfigurations, jgroupsChannel));
+      } else if ("cache".equals(outputType)) {
+         Configuration config = null;
+         if (cacheName == null || BasicCacheContainer.DEFAULT_CACHE_NAME.equals(cacheName)) {
+            config = holder.getDefaultConfigurationBuilder().build();
+         } else {
+            ConfigurationBuilder b = holder.getNamedConfigurationBuilders().get(cacheName);
+            if (b == null) {
+               System.out.println("ERROR: cache " + cacheName + " not found.");
+               System.exit(1);
+               return;
+            }
+            config = b.build();
+         }
+         store(outputFormat, outputFile, reflectProperties(config, prefix));
+      } else if ("global".equals(outputType)) {
+         GlobalConfiguration globalConfiguration = holder.getGlobalConfigurationBuilder().build();
+         store(outputFormat, outputFile, reflectProperties(globalConfiguration, prefix));
+      } else if ("jgroups".equals(outputType)) {
+         GlobalConfiguration globalConfiguration = holder.getGlobalConfigurationBuilder().build();
+         JChannel jgroupsChannel = getInitializedJChannel(globalConfiguration);
+         store(outputFormat, outputFile, reflectProperties(jgroupsChannel, prefix));
+      } else {
+         System.out.println("ERROR: unknown output type: " + outputType);
+         usage();
+         return;
+      }
+   }
+
+   private static void store(String outputFormat, String outputFile, Properties p) throws Exception {
+      if ("xml".equals(outputFormat)) {
+         storeSortedPropertiesAsXML(p, outputFile);
+      } else if ("standard".equals(outputFormat)) {
+         storeSortedProperties(p, outputFile);
+      } else {
+         System.out.println("ERROR: unknown output format: " + outputFormat);
+         usage();
+         return;
+      }
    }
 
    private static JChannel getInitializedJChannel(GlobalConfiguration globalConfiguration) {

@@ -28,22 +28,38 @@
             <artifactId>maven-assembly-plugin</artifactId>
             <executions>
                <execution>
-                  <id>assemble</id>
+                  <id>server-patch</id>
                   <phase>package</phase>
                   <goals>
                      <goal>single</goal>
                   </goals>
+                  <configuration>
+                     <descriptors>
+                        <descriptor>${project.basedir}/src/main/assemblies/server-patch.xml</descriptor>
+                     </descriptors>
+                     <finalName>server-patch</finalName>
+                     <outputDirectory>${project.build.directory}</outputDirectory>
+                     <workDirectory>${project.build.directory}/assembly/work</workDirectory>
+                     <appendAssemblyId>false</appendAssemblyId>
+                  </configuration>
+               </execution>
+               <execution>
+                  <id>radargun-patch</id>
+                  <phase>package</phase>
+                  <goals>
+                     <goal>single</goal>
+                  </goals>
+                  <configuration>
+                     <descriptors>
+                        <descriptor>${project.basedir}/src/main/assemblies/radargun-patch.xml</descriptor>
+                     </descriptors>
+                     <finalName>radargun-patch</finalName>
+                     <outputDirectory>${project.build.directory}</outputDirectory>
+                     <workDirectory>${project.build.directory}/assembly/work</workDirectory>
+                     <appendAssemblyId>false</appendAssemblyId>
+                  </configuration>
                </execution>
             </executions>
-            <configuration>
-               <descriptors>
-                  <descriptor>${project.basedir}/src/main/assemblies/server-patch.xml</descriptor>
-               </descriptors>
-               <finalName>server-patch</finalName>
-               <outputDirectory>${project.build.directory}</outputDirectory>
-               <workDirectory>${project.build.directory}/assembly/work</workDirectory>
-               <appendAssemblyId>false</appendAssemblyId>
-            </configuration>
          </plugin>
       </plugins>
    </build>
