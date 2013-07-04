@@ -17,6 +17,7 @@
             <include>modules/system/layers/base/org/jboss/as/clustering/infinispan/main/module.xml</include>
             <include>modules/system/layers/base/org/jboss/qa/jdg/config/main/module.xml</include>
          </includes>
+         <filtered>true</filtered>
       </fileSet>
       <fileSet>
          <directory>${project.basedir}/target</directory>

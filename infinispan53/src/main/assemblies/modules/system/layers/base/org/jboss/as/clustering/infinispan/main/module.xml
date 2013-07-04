@@ -28,7 +28,7 @@
    </properties>
 
    <resources>
-      <resource-root path="infinispan-server-infinispan-5.3.0-SNAPSHOT.jar"/>
+      <resource-root path="infinispan-server-infinispan-${infinispan.version}.jar"/>
         <!-- Insert resources here -->
    </resources>
 

@@ -7,11 +7,15 @@
       <version>0.0.1-SNAPSHOT</version>
    </parent>
    <artifactId>infinispan53</artifactId>
+   
+   <properties>
+      <infinispan.version>5.3.1-SNAPSHOT</infinispan.version>
+   </properties>
    <dependencies>
       <dependency>
          <groupId>org.infinispan</groupId>
          <artifactId>infinispan-core</artifactId>
-         <version>5.3.1-SNAPSHOT</version>
+         <version>${infinispan.version}</version>
       </dependency>
    </dependencies>
    <build>
