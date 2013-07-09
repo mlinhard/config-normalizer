@@ -8,6 +8,7 @@
    <name>Normalizes Infinispan Config to flat structure</name>
    <modules>
       <module>infinispan53</module>
+      <module>infinispan60</module>
    </modules>
    <build>
       <plugins>
