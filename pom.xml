@@ -7,6 +7,7 @@
    <packaging>pom</packaging>
    <name>Normalizes Infinispan Config to flat structure</name>
    <modules>
+      <module>infinispan52</module>
       <module>infinispan53</module>
       <module>infinispan60</module>
    </modules>
