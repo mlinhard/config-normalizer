@@ -29,16 +29,12 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.infinispan.api.BasicCacheContainer;
 import org.infinispan.configuration.cache.Configuration;
@@ -150,17 +146,7 @@ public class ConfigNormalizer {
     * @throws Exception
     */
    public static void storeSortedPropertiesAsXML(Properties properties, String file) throws Exception {
-      Properties props = new Properties() {
-         @Override
-         public Set<Object> keySet() {
-            return Collections.unmodifiableSet(new TreeSet<Object>(super.keySet()));
-         }
-
-         @Override
-         public synchronized Enumeration<Object> keys() {
-            return Collections.enumeration(new TreeSet<Object>(super.keySet()));
-         }
-      };
+      Properties props = new SortedProperties();
       props.putAll(properties);
       props.storeToXML(new FileOutputStream(file), null, "UTF-8");
    }
@@ -174,17 +160,7 @@ public class ConfigNormalizer {
     * @throws Exception
     */
    public static void storeSortedProperties(Properties properties, String file) throws Exception {
-      Properties props = new Properties() {
-         @Override
-         public Set<Object> keySet() {
-            return Collections.unmodifiableSet(new TreeSet<Object>(super.keySet()));
-         }
-
-         @Override
-         public synchronized Enumeration<Object> keys() {
-            return Collections.enumeration(new TreeSet<Object>(super.keySet()));
-         }
-      };
+      Properties props = new SortedProperties();
       props.putAll(properties);
       props.store(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"), null);
    }
@@ -358,8 +334,32 @@ public class ConfigNormalizer {
       }
    }
 
+   private static List<Field> getFields(Class<?> clazz) {
+      Class<?> c = clazz;
+      ArrayList<Field> r = new ArrayList<Field>();
+      while (c != null && c != Object.class) {
+         for (Field f : c.getDeclaredFields()) {
+            r.add(f);
+         }
+         c = c.getSuperclass();
+      }
+      return r;
+   }
+
+   private static List<Method> getMethods(Class<?> clazz) {
+      Class<?> c = clazz;
+      ArrayList<Method> r = new ArrayList<Method>();
+      while (c != null && c != Object.class) {
+         for (Method m : c.getDeclaredMethods()) {
+            r.add(m);
+         }
+         c = c.getSuperclass();
+      }
+      return r;
+   }
+
    private static void reflectJGroupsProtocol(String prefix, Properties p, Protocol proto) throws Exception {
-      for (Field field : proto.getClass().getDeclaredFields()) {
+      for (Field field : getFields(proto.getClass())) {
          if (field.isAnnotationPresent(Property.class)) {
             field.setAccessible(true);
             Object val = field.get(proto);
@@ -388,7 +388,7 @@ public class ConfigNormalizer {
       }
       Class<?> cls = obj.getClass();
       if (cls.getName().startsWith("org.infinispan.config") && !cls.isEnum()) {
-         for (Method m : obj.getClass().getDeclaredMethods()) {
+         for (Method m : getMethods(obj.getClass())) {
             if (m.getParameterTypes().length != 0 || "toString".equals(m.getName()) || "hashCode".equals(m.getName())) {
                continue;
             }
