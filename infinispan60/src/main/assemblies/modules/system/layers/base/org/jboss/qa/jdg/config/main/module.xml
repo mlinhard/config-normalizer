@@ -35,6 +35,7 @@
       <module name="javax.api" />
       <module name="sun.jdk" />
       <module name="org.infinispan" />
+      <module name="org.jboss.logging" />
       <module name="org.jgroups" />
    </dependencies>
 </module>
