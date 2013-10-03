@@ -21,7 +21,6 @@ package org.jboss.qa.jdg.config;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -35,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-
+import javax.management.MBeanAttributeInfo;
 import org.infinispan.api.BasicCacheContainer;
 import org.infinispan.configuration.cache.Configuration;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
@@ -44,8 +43,9 @@ import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.infinispan.util.FileLookupFactory;
+import org.jboss.logging.Logger;
 import org.jgroups.JChannel;
-import org.jgroups.annotations.Property;
+import org.jgroups.jmx.ResourceDMBean;
 import org.jgroups.stack.Protocol;
 
 /**
@@ -57,12 +57,14 @@ import org.jgroups.stack.Protocol;
  */
 public class ConfigNormalizer {
 
+   private static Logger log = Logger.getLogger(ConfigNormalizer.class);
+
    private static Method plainToString = null;
    static {
       try {
          plainToString = Object.class.getMethod("toString");
       } catch (Exception e) {
-         e.printStackTrace();
+         log.error("Error while initializing", e);
       }
    }
 
@@ -334,18 +336,6 @@ public class ConfigNormalizer {
       }
    }
 
-   private static List<Field> getFields(Class<?> clazz) {
-      Class<?> c = clazz;
-      ArrayList<Field> r = new ArrayList<Field>();
-      while (c != null && c != Object.class) {
-         for (Field f : c.getDeclaredFields()) {
-            r.add(f);
-         }
-         c = c.getSuperclass();
-      }
-      return r;
-   }
-
    private static List<Method> getMethods(Class<?> clazz) {
       Class<?> c = clazz;
       ArrayList<Method> r = new ArrayList<Method>();
@@ -359,13 +349,12 @@ public class ConfigNormalizer {
    }
 
    private static void reflectJGroupsProtocol(String prefix, Properties p, Protocol proto) throws Exception {
-      for (Field field : getFields(proto.getClass())) {
-         if (field.isAnnotationPresent(Property.class)) {
-            field.setAccessible(true);
-            Object val = field.get(proto);
-            String prefixDot = prefix == null || "".equals(prefix) ? "" : prefix + ".";
-            p.put(prefixDot + proto.getName() + "." + field.getName(), val == null ? "null" : val.toString());
-         }
+      ResourceDMBean bean = new ResourceDMBean(proto);
+      for (MBeanAttributeInfo info : bean.getMBeanInfo().getAttributes()) {
+         String propName = info.getName();
+         Object propValue = bean.getAttribute(propName);
+         String prefixDot = prefix == null || "".equals(prefix) ? "" : prefix + ".";
+         p.put(prefixDot + proto.getName() + "." + propName, propValue == null ? "null" : propValue.toString());
       }
    }
 
