@@ -45,6 +45,7 @@ import org.infinispan.configuration.parsing.ConfigurationBuilderHolder;
 import org.infinispan.configuration.parsing.ParserRegistry;
 import org.infinispan.remoting.transport.jgroups.JGroupsTransport;
 import org.infinispan.util.FileLookupFactory;
+import org.infinispan.util.TypedProperties;
 import org.jboss.logging.Logger;
 import org.jgroups.JChannel;
 import org.jgroups.jmx.ResourceDMBean;
@@ -195,6 +196,7 @@ public class ConfigNormalizer {
    private static class FakeJGroupsTransport extends JGroupsTransport {
       @Override
       public void initChannel() {
+         props = TypedProperties.toTypedProperties(configuration.transport().properties());
          super.initChannel();
       }
    }

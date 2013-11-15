@@ -39,6 +39,7 @@ import javax.management.MBeanAttributeInfo;
 
 import org.infinispan.commons.api.BasicCacheContainer;
 import org.infinispan.commons.util.FileLookupFactory;
+import org.infinispan.commons.util.TypedProperties;
 import org.infinispan.configuration.cache.Configuration;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.configuration.global.GlobalConfiguration;
@@ -195,6 +196,7 @@ public class ConfigNormalizer {
    private static class FakeJGroupsTransport extends JGroupsTransport {
       @Override
       public void initChannel() {
+         props = TypedProperties.toTypedProperties(configuration.transport().properties());
          super.initChannel();
       }
    }
