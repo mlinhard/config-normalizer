@@ -9,7 +9,7 @@
    <artifactId>infinispan60</artifactId>
    
    <properties>
-      <infinispan.version>6.0.0-SNAPSHOT</infinispan.version>
+      <infinispan.version>6.0.1-SNAPSHOT</infinispan.version>
    </properties>
    <dependencies>
       <dependency>
